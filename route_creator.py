@@ -1,5 +1,44 @@
 import requests
 import math
+import heapq
+
+def dijkstra(graph, start, end):
+  # Initialize distances with infinity, except for the start node
+  distances = {node: float('infinity') for node in graph}
+  distances[start] = 0
+  
+  # Priority queue: stores tuples of (distance, node)
+  queue = [(0, start)]
+  
+  # To store the path taken
+  previous_nodes = {node: None for node in graph}
+  
+  while queue:
+    # Get the node with the smallest distance
+    current_distance, current_node = heapq.heappop(queue)
+    
+    # If we've reached the end node, we can stop
+    if current_node == end:
+      break
+    
+    for neighbor, weight in graph[current_node]:
+      distance = current_distance + weight
+        
+      # If the distance to the neighbor is shorter by taking this path
+      if distance < distances[neighbor]:
+        distances[neighbor] = distance
+        previous_nodes[neighbor] = current_node
+        heapq.heappush(queue, (distance, neighbor))
+
+  # Reconstruct the shortest path
+  path = []
+  current = end
+  while current is not None:
+    path.append(current)
+    current = previous_nodes[current]
+  path.reverse()
+  
+  return path, distances[end]
 
 def haversine(lat1, lon1, lat2, lon2):
   # Radius of the Earth in kilometers
@@ -52,7 +91,7 @@ def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, 
           nearest_node_id = node_id
           nearest_node_element_id = element_id
 
-      # For pistes, find the closest node within 20 meters, avoiding duplicates
+      # For pistes, find the closest node within max_distance_km distance, avoiding duplicates
       elif element_type == 'piste' and distance <= max_distance_km:
         if element_id not in closest_node_per_element or distance < closest_node_per_element[element_id][1]:
           closest_node_per_element[element_id] = (node_id, distance)
@@ -148,7 +187,15 @@ for node_id in graph:
       for nearest_node, distance in nodes:
         if nearest_node != node_id and (graph[node_id].__contains__((nearest_node, distance)) == False):
           graph[node_id].append((nearest_node, distance))
-          # print(f"Stranded Node {node_id} connects to node {nearest_node} with distance {distance} km")
 
+start_node = 5875336381
+end_node = 347047601
+shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
+print("Shortest path:", shortest_path)
+print("Shortest distance:", shortest_distance, "km")
 
-print(graph)
+for node_id in graph:
+  if not graph[node_id]:
+    print(f"Stranded Node {node_id} has no connections")
+  else:
+    print(f"Node {node_id} connects to nodes {graph[node_id]}")
