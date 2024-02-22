@@ -23,38 +23,55 @@ def haversine(lat1, lon1, lat2, lon2):
 
   return distance
 
-def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, stranded_node_type, elements, max_distance_km=0.05):
-    nodes_within_distance = []
-    min_distance = float('inf')
-    nearest_node_id = None
-    seen_node_ids = set()  # Track seen node IDs to avoid duplicates
+def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, elements, stranded_node_id, graph, max_distance_km=0.05):
+  closest_node_per_element = {}
+  min_distance = float('inf')
+  nearest_node_id = None
+  nearest_node_element_id = None  # Track the element ID of the nearest node for distinction
 
-    for element in elements:
-        element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
-        if element_type != stranded_node_type:
-            for i, geom in enumerate(element.get('geometry', [])):
-                lat, lon = geom['lat'], geom['lon']
-                node_id = element['nodes'][i]
-                # Skip this node if we've already processed it
-                if node_id in seen_node_ids:
-                    continue
-                seen_node_ids.add(node_id)  # Mark this node ID as seen
+  # Retrieve existing connections for the stranded node to exclude them
+  existing_connections = {conn[0] for conn in graph.get(stranded_node_id, [])}
 
-                distance = haversine(stranded_node_lat, stranded_node_lon, lat, lon)
-                if distance <= max_distance_km:
-                    nodes_within_distance.append((node_id, distance))
-                elif distance < min_distance:
-                    min_distance = distance
-                    nearest_node_id = node_id
+  for element in elements:
+    element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
+    element_id = element['id']
 
-    # Sort nodes within distance by their distance, so closest nodes are first
-    nodes_within_distance.sort(key=lambda x: x[1])
+    for i, geom in enumerate(element.get('geometry', [])):
+      lat, lon = geom['lat'], geom['lon']
+      node_id = element['nodes'][i]
+      # Skip if the current node is the stranded node itself or already connected
+      if node_id == stranded_node_id or node_id in existing_connections:
+        continue
 
-    # If we found nodes within 20 meters, return them; otherwise, return the nearest node
-    if nodes_within_distance:
-        return nodes_within_distance
-    else:
-        return [(nearest_node_id, min_distance)] if nearest_node_id else []
+      distance = haversine(stranded_node_lat, stranded_node_lon, lat, lon)
+
+      # For lifts, only the first node matters, and it should not be more than 100m away
+      if element_type == 'lift' and i == 0 and distance <= 0.1:
+        if (distance < min_distance or nearest_node_element_id != element_id):
+          min_distance = distance
+          nearest_node_id = node_id
+          nearest_node_element_id = element_id
+
+      # For pistes, find the closest node within 20 meters, avoiding duplicates
+      elif element_type == 'piste' and distance <= max_distance_km:
+        if element_id not in closest_node_per_element or distance < closest_node_per_element[element_id][1]:
+          closest_node_per_element[element_id] = (node_id, distance)
+
+      elif element_type == 'piste' and (nearest_node_element_id is None or distance < min_distance):
+        # Update nearest node if this node is closer and not a lift already considered
+        min_distance = distance
+        nearest_node_id = node_id
+        nearest_node_element_id = element_id
+
+  # Compile the results, ensuring no duplicates and excluding already connected nodes
+  result_nodes = list(closest_node_per_element.values())
+
+  # If no nodes are found within the preferred distance, consider the nearest node
+  if not result_nodes and nearest_node_id:
+    result_nodes.append((nearest_node_id, min_distance))
+
+  return result_nodes
+
 
 
 south, west, north, east = 61.29560770030594, 12.127237063661534, 61.33240275253347, 12.266869460358693  # Replace these values with your coordinates
@@ -73,48 +90,65 @@ out geom;
 response = requests.get(f"https://overpass-api.de/api/interpreter?data={requests.utils.quote(query)}")
 
 if not response.ok:
-    raise Exception('Network response was not ok')
+  raise Exception('Network response was not ok')
 
 data = response.json()
 
-if 'elements' in data and len(data['elements']) > 0:
-    first_element = data['elements'][32]
-    print(first_element)
-else:
-    print("No elements found in the data")
+filtered_data = [
+    element for element in data['elements']
+    if (
+        ('piste:type' in element['tags'] and element['tags']['piste:type'] == 'downhill' and
+         element['tags'].get('piste:difficulty') not in ['freeride', 'extreme'] and
+         (element['tags'].get('ref') or element['tags'].get('name')))
+        or
+        ('aerialway' in element['tags'])
+    )
+]
+
+filtered_data = {'elements': filtered_data}
+
+if 'elements' in filtered_data and len(filtered_data['elements']) <= 0:
+  print("No elements found in the filtered_data")
 
 # Create a graph from the data with already connected nodes
 graph = {}
-for element in data['elements']:
-    if 'nodes' in element and 'geometry' in element:
-        for i in range(len(element['nodes']) - 1):
-            node_a = element['nodes'][i]
-            node_b = element['nodes'][i + 1]
-            lat1, lon1 = element['geometry'][i]['lat'], element['geometry'][i]['lon']
-            lat2, lon2 = element['geometry'][i + 1]['lat'], element['geometry'][i + 1]['lon']
-            distance = haversine(lat1, lon1, lat2, lon2)
+for element in filtered_data['elements']:
+  if 'nodes' in element and 'geometry' in element:
+    for i in range(len(element['nodes']) - 1):
+      node_a = element['nodes'][i]
+      node_b = element['nodes'][i + 1]
+      lat1, lon1 = element['geometry'][i]['lat'], element['geometry'][i]['lon']
+      lat2, lon2 = element['geometry'][i + 1]['lat'], element['geometry'][i + 1]['lon']
+      distance = haversine(lat1, lon1, lat2, lon2)
 
-            if node_a not in graph:
-                graph[node_a] = []
-            if node_b not in graph:
-                graph[node_b] = []
+      if node_a not in graph:
+          graph[node_a] = []
+      if node_b not in graph:
+          graph[node_b] = []
 
-            graph[node_a].append((node_b, distance))
+      graph[node_a].append((node_b, distance))
 
 
 for node_id in graph:
-    if not graph[node_id]:  # This node is stranded
-        for element in data['elements']:
-            if node_id in element['nodes']:
-                index = element['nodes'].index(node_id)
-                stranded_lat = element['geometry'][index]['lat']
-                stranded_lon = element['geometry'][index]['lon']
-                stranded_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
-                nodes = find_nodes_within_distance_or_nearest(stranded_lat, stranded_lon, stranded_type, data['elements'])
+  if not graph[node_id]:  # This node is stranded
+    # Find the stranded node's latitude and longitude directly from its first occurrence in the elements
+    found = False
+    for element in filtered_data['elements']:
+      if node_id in element['nodes']:
+        index = element['nodes'].index(node_id)
+        stranded_lat = element['geometry'][index]['lat']
+        stranded_lon = element['geometry'][index]['lon']
+        found = True
+        break  # Exit after finding the first occurrence
 
-                for nearest_node, distance in nodes:
-                    graph[node_id].append((nearest_node, distance))
-                    print(f"Stranded Node {node_id} connects to node {nearest_node} with distance {distance} km")
-                break
+    if found:
+      # Now call the function with the updated signature, including 'graph' and 'node_id'
+      nodes = find_nodes_within_distance_or_nearest(stranded_lat, stranded_lon, filtered_data['elements'], node_id, graph)
 
-#print(graph)
+      for nearest_node, distance in nodes:
+        if nearest_node != node_id and (graph[node_id].__contains__((nearest_node, distance)) == False):
+          graph[node_id].append((nearest_node, distance))
+          # print(f"Stranded Node {node_id} connects to node {nearest_node} with distance {distance} km")
+
+
+print(graph)
