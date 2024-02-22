@@ -1,5 +1,4 @@
-from flask import Flask, request
-from data_formatter import data_formatter
+from flask import Flask, jsonify, request
 app = Flask(__name__)
 
 @app.route('/', methods=['GET'])
@@ -9,6 +8,15 @@ def hello_world():
 
 @app.route('/test', methods=['GET','POST'])
 def hello_world_post():
-    request_data = request.get_json().get('data', "No data found")
-    
-    return data_formatter(request_data)
+    if request.method == 'GET':
+        return 'No data found', 400
+    elif request.method == 'POST':
+      request_data = request.get_json()
+      if not request_data:
+            # If request body is empty, return a specific response
+            return 'Empty request body', 400
+      return jsonify(request_data)
+
+
+if __name__ == "__main__":
+    app.run()
