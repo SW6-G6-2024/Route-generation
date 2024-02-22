@@ -62,54 +62,41 @@ def haversine(lat1, lon1, lat2, lon2):
 
   return distance
 
+# TRY FINDING ALL NODES IN A 50 M DISTANCE NO MATTER WHAT, AND SEE IF IT HELPS!!
+# IT WORKED!!!!
+# THERE STILL EXISTS SOME STRANDED NODES...
 def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, elements, stranded_node_id, graph, max_distance_km=0.05):
-  closest_node_per_element = {}
-  min_distance = float('inf')
-  nearest_node_id = None
-  nearest_node_element_id = None  # Track the element ID of the nearest node for distinction
+    closest_nodes = []
+    min_distance = float('inf')
+    nearest_node_id = None
 
-  # Retrieve existing connections for the stranded node to exclude them
-  existing_connections = {conn[0] for conn in graph.get(stranded_node_id, [])}
+    # Retrieve existing connections for the stranded node to exclude them
+    existing_connections = {conn[0] for conn in graph.get(stranded_node_id, [])}
 
-  for element in elements:
-    element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
-    element_id = element['id']
+    for element in elements:
+        element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
 
-    for i, geom in enumerate(element.get('geometry', [])):
-      lat, lon = geom['lat'], geom['lon']
-      node_id = element['nodes'][i]
-      # Skip if the current node is the stranded node itself or already connected
-      if node_id == stranded_node_id or node_id in existing_connections:
-        continue
+        for i, geom in enumerate(element.get('geometry', [])):
+            lat, lon = geom['lat'], geom['lon']
+            node_id = element['nodes'][i]
+            # Skip if the current node is the stranded node itself or already connected
+            if node_id == stranded_node_id or node_id in existing_connections:
+                continue
 
-      distance = haversine(stranded_node_lat, stranded_node_lon, lat, lon)
+            distance = haversine(stranded_node_lat, stranded_node_lon, lat, lon)
 
-      # For lifts, only the first node matters, and it should not be more than 100m away
-      if element_type == 'lift' and i == 0 and distance <= 0.1:
-        if (distance < min_distance or nearest_node_element_id != element_id):
-          min_distance = distance
-          nearest_node_id = node_id
-          nearest_node_element_id = element_id
+            # Check distance against the 50m criterion for all nodes
+            if distance <= max_distance_km:
+                if distance < min_distance:
+                    min_distance = distance
+                    nearest_node_id = node_id
+                closest_nodes.append((node_id, distance))
 
-      # For pistes, find the closest node within max_distance_km distance, avoiding duplicates
-      elif element_type == 'piste' and distance <= max_distance_km:
-        if element_id not in closest_node_per_element or distance < closest_node_per_element[element_id][1]:
-          closest_node_per_element[element_id] = (node_id, distance)
+    # If no nodes are found within 50 meters, include the nearest found node outside this range
+    if not closest_nodes and nearest_node_id:
+        closest_nodes.append((nearest_node_id, min_distance))
 
-      elif element_type == 'piste' and (nearest_node_element_id is None or distance < min_distance):
-        # Update nearest node if this node is closer and not a lift already considered
-        min_distance = distance
-        nearest_node_id = node_id
-        nearest_node_element_id = element_id
-
-  # Compile the results, ensuring no duplicates and excluding already connected nodes
-  result_nodes = list(closest_node_per_element.values())
-
-  # If no nodes are found within the preferred distance, consider the nearest node
-  if not result_nodes and nearest_node_id:
-    result_nodes.append((nearest_node_id, min_distance))
-
-  return result_nodes
+    return closest_nodes
 
 
 
@@ -197,5 +184,3 @@ print("Shortest distance:", shortest_distance, "km")
 for node_id in graph:
   if not graph[node_id]:
     print(f"Stranded Node {node_id} has no connections")
-  else:
-    print(f"Node {node_id} connects to nodes {graph[node_id]}")
