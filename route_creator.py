@@ -1,6 +1,7 @@
 import requests
 import math
 import heapq
+import json
 
 def dijkstra(graph, start, end):
   # Initialize distances with infinity, except for the start node
@@ -65,7 +66,7 @@ def haversine(lat1, lon1, lat2, lon2):
 # TRY FINDING ALL NODES IN A 50 M DISTANCE NO MATTER WHAT, AND SEE IF IT HELPS!!
 # IT WORKED!!!!
 # THERE STILL EXISTS SOME STRANDED NODES...
-def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, elements, stranded_node_id, graph, max_distance_km=0.05):
+def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, elements, stranded_node_id, graph, max_distance_km=0.2):
     closest_nodes = []
     min_distance = float('inf')
     nearest_node_id = None
@@ -175,11 +176,64 @@ for node_id in graph:
         if nearest_node != node_id and (graph[node_id].__contains__((nearest_node, distance)) == False):
           graph[node_id].append((nearest_node, distance))
 
-start_node = 5875336381
-end_node = 347047601
+start_node = 347047601
+end_node = 10659337844
 shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
-print("Shortest path:", shortest_path)
+#print("Shortest path:", shortest_path)
 print("Shortest distance:", shortest_distance, "km")
+
+# Create a lookup table for node IDs to their coordinates
+node_id_to_coords = {}
+for element in filtered_data['elements']:
+    for i, node_id in enumerate(element['nodes']):
+        lat, lon = element['geometry'][i]['lat'], element['geometry'][i]['lon']
+        node_id_to_coords[node_id] = (lat, lon)
+
+print("Shortest distance:", shortest_distance, "km")
+if shortest_path:
+    print("Shortest path (Node ID - Latitude, Longitude):")
+    for node_id in shortest_path:
+        lat, lon = node_id_to_coords.get(node_id, ("Unknown", "Unknown"))
+        print(f"{node_id} - ({lat}, {lon})")
+
+
+# Assuming shortest_path and node_id_to_coords are already defined as shown previously
+
+# Initialize an empty GeoJSON FeatureCollection
+geojson_data = {
+    "type": "FeatureCollection",
+    "features": []
+}
+
+# Check if there is a shortest path to convert
+if shortest_path:
+    # Extract coordinates from the node IDs in the shortest path
+    path_coordinates = [node_id_to_coords.get(node_id, ("Unknown", "Unknown")) for node_id in shortest_path]
+
+    # Filter out any 'Unknown' coordinates that may have been added (if any)
+    path_coordinates = [coord for coord in path_coordinates if coord != ("Unknown", "Unknown")]
+
+    # Create a GeoJSON Feature for the LineString representing the shortest path
+    path_feature = {
+        "type": "Feature",
+        "geometry": {
+            "type": "LineString",
+            "coordinates": path_coordinates
+        },
+        "properties": {
+            "description": "Shortest Path",
+            "distance_km": shortest_distance
+        }
+    }
+
+    # Add the path Feature to the FeatureCollection
+    geojson_data["features"].append(path_feature)
+
+# Printing or using the GeoJSON data
+import json
+print(json.dumps(geojson_data, indent=2))
+
+
 
 for node_id in graph:
   if not graph[node_id]:
