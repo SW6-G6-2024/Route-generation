@@ -176,8 +176,8 @@ for node_id in graph:
         if nearest_node != node_id and (graph[node_id].__contains__((nearest_node, distance)) == False):
           graph[node_id].append((nearest_node, distance))
 
-start_node = 347261511
-end_node = 252574352
+start_node = 347047780
+end_node = 370586596
 shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
 #print("Shortest path:", shortest_path)
 print("Shortest distance:", shortest_distance, "km")
