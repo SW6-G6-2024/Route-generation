@@ -176,8 +176,8 @@ for node_id in graph:
         if nearest_node != node_id and (graph[node_id].__contains__((nearest_node, distance)) == False):
           graph[node_id].append((nearest_node, distance))
 
-start_node = 347047601
-end_node = 10659337844
+start_node = 347261511
+end_node = 252574352
 shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
 #print("Shortest path:", shortest_path)
 print("Shortest distance:", shortest_distance, "km")
@@ -207,30 +207,32 @@ geojson_data = {
 
 # Check if there is a shortest path to convert
 if shortest_path:
-    # Extract coordinates from the node IDs in the shortest path
-    path_coordinates = [node_id_to_coords.get(node_id, ("Unknown", "Unknown")) for node_id in shortest_path]
+  # Extract coordinates from the node IDs in the shortest path and switch lat and lon
+  path_coordinates = [node_id_to_coords.get(node_id, ("Unknown", "Unknown")) for node_id in shortest_path]
+  
+  # Switch the latitude and longitude positions
+  # Ensure coordinates are not 'Unknown' before attempting to switch to avoid errors
+  path_coordinates = [(lon, lat) for lat, lon in path_coordinates if (lat, lon) != ("Unknown", "Unknown")]
 
-    # Filter out any 'Unknown' coordinates that may have been added (if any)
-    path_coordinates = [coord for coord in path_coordinates if coord != ("Unknown", "Unknown")]
-
-    # Create a GeoJSON Feature for the LineString representing the shortest path
-    path_feature = {
-        "type": "Feature",
-        "geometry": {
-            "type": "LineString",
-            "coordinates": path_coordinates
-        },
-        "properties": {
-            "description": "Shortest Path",
-            "distance_km": shortest_distance
-        }
+  # Create a GeoJSON Feature for the LineString representing the shortest path
+  path_feature = {
+    "type": "Feature",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": path_coordinates
+    },
+    "properties": {
+      "description": "Shortest Path",
+      "distance_km": shortest_distance,
+      "piste:type": "downhill"
     }
+  }
 
-    # Add the path Feature to the FeatureCollection
-    geojson_data["features"].append(path_feature)
+  # Add the path Feature to the FeatureCollection
+  geojson_data["features"].append(path_feature)
+
 
 # Printing or using the GeoJSON data
-import json
 print(json.dumps(geojson_data, indent=2))
 
 
