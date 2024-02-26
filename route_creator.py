@@ -66,7 +66,7 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 # Create a graph from the data and connect nodes
-def create_graph():
+def create_graph(filtered_data):
   graph = {}
   for element in filtered_data['elements']:
     if 'nodes' in element and 'geometry' in element:
@@ -86,7 +86,7 @@ def create_graph():
   return graph
 
 
-def find_connections_for_stranded_nodes(graph):
+def find_connections_for_stranded_nodes(graph, filtered_data):
   for node_id in graph:
     if not graph[node_id]:  # This node is stranded
       # Find the stranded node's latitude and longitude directly from its first occurrence in the elements
@@ -180,7 +180,7 @@ def get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance):
             "properties": {
                 "description": "Shortest Path",
                 "distance_km": shortest_distance,
-                # Additional properties can be added here
+                "piste:type": "downhill"
             }
         }
 
@@ -190,54 +190,54 @@ def get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance):
     return geojson_data
     
 
-south, west, north, east = 61.29560770030594, 12.127237063661534, 61.33240275253347, 12.266869460358693  # Replace these values with your coordinates
+# south, west, north, east = 61.29560770030594, 12.127237063661534, 61.33240275253347, 12.266869460358693  # Replace these values with your coordinates
 
-query = f"""
-[out:json];
-(
-  // Fetch downhill pistes within the bounding box
-  way["piste:type"="downhill"]({south},{west},{north},{east});
-  // Fetch all ski lifts within the bounding box
-  way["aerialway"]({south},{west},{north},{east});
-);
-out geom;
-"""
+def generate_shortest_route(south, west, east, north):
+  query = f"""
+  [out:json];
+  (
+    // Fetch downhill pistes within the bounding box
+    way["piste:type"="downhill"]({south},{west},{north},{east});
+    // Fetch all ski lifts within the bounding box
+    way["aerialway"]({south},{west},{north},{east});
+  );
+  out geom;
+  """
+  response = requests.get(f"https://overpass-api.de/api/interpreter?data={requests.utils.quote(query)}")
 
-response = requests.get(f"https://overpass-api.de/api/interpreter?data={requests.utils.quote(query)}")
+  if not response.ok:
+    raise Exception('Network response was not ok')
 
-if not response.ok:
-  raise Exception('Network response was not ok')
+  data = response.json()
 
-data = response.json()
+  filtered_data = [
+      element for element in data['elements']
+      if (
+          ('piste:type' in element['tags'] and element['tags']['piste:type'] == 'downhill' and
+          element['tags'].get('piste:difficulty') not in ['freeride', 'extreme'] and
+          (element['tags'].get('ref') or element['tags'].get('name')))
+          or
+          ('aerialway' in element['tags'])
+      )
+  ]
 
-filtered_data = [
-    element for element in data['elements']
-    if (
-        ('piste:type' in element['tags'] and element['tags']['piste:type'] == 'downhill' and
-         element['tags'].get('piste:difficulty') not in ['freeride', 'extreme'] and
-         (element['tags'].get('ref') or element['tags'].get('name')))
-        or
-        ('aerialway' in element['tags'])
-    )
-]
+  filtered_data = {'elements': filtered_data}
 
-filtered_data = {'elements': filtered_data}
+  if 'elements' in filtered_data and len(filtered_data['elements']) <= 0:
+    print("No elements found in the filtered_data")
 
-if 'elements' in filtered_data and len(filtered_data['elements']) <= 0:
-  print("No elements found in the filtered_data")
+  graph = create_graph(filtered_data)
+  graph = find_connections_for_stranded_nodes(graph, filtered_data)
 
-graph = create_graph()
-graph = find_connections_for_stranded_nodes(graph)
+  start_node = 347047780
+  end_node = 370586596
+  shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
 
-start_node = 347047780
-end_node = 370586596
-shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
+  # Use the function and print the GeoJSON data
+  geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)
 
-# Use the function and print the GeoJSON data
-geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)
+  # for node_id in graph:
+  #   if not graph[node_id]:
+  #     print(f"Stranded Node {node_id} has no connections")
 
-print(json.dumps(geojson_data, indent=2))
-
-for node_id in graph:
-  if not graph[node_id]:
-    print(f"Stranded Node {node_id} has no connections")
+  return geojson_data
