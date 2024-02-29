@@ -4,6 +4,17 @@ import heapq
 import json
 
 def dijkstra(graph, start, end):
+  """
+    Find the shortest path between two nodes in a graph using Dijkstra's algorithm.
+
+    Args:
+      graph (dict): The graph of nodes and their connections.
+      start (int): The start node id.
+      end (int): The end node id.
+
+    Returns: 
+      tuple: The shortest path and the distance between the two nodes.
+  """
   # Initialize distances with infinity, except for the start node
   distances = {node: float('infinity') for node in graph}
   distances[start] = 0
@@ -43,6 +54,18 @@ def dijkstra(graph, start, end):
 
 
 def haversine(lat1, lon1, lat2, lon2):
+  """
+    Calculate the great circle distance in kilometers between two points on the Earth's surface using the Haversine formula.
+
+    Args:
+      lat1 (float): Latitude of the first point.
+      lon1 (float): Longitude of the first point.
+      lat2 (float): Latitude of the second point.
+      lon2 (float): Longitude of the second point.
+
+    Returns:
+      float: The distance between the two points in kilometers.
+  """
   # Radius of the Earth in kilometers
   R = 6371.0
 
@@ -67,6 +90,15 @@ def haversine(lat1, lon1, lat2, lon2):
 
 # Create a graph from the data and connect nodes
 def create_graph(filtered_data):
+  """
+    Create a graph from the data and connect nodes.
+
+    Args:
+      filtered_data (json): The filtered data from Overpass API.
+    
+    Returns:
+      dict: The graph of nodes and their connections.
+  """
   graph = {}
   for element in filtered_data['elements']:
     if 'nodes' in element and 'geometry' in element:
@@ -78,15 +110,25 @@ def create_graph(filtered_data):
         distance = haversine(lat1, lon1, lat2, lon2)
 
         if node_a not in graph:
-            graph[node_a] = []
+          graph[node_a] = []
         if node_b not in graph:
-            graph[node_b] = []
+          graph[node_b] = []
 
         graph[node_a].append((node_b, distance))
   return graph
 
 
 def find_connections_for_stranded_nodes(graph, filtered_data):
+  """
+    Find connections for stranded nodes and returns the updated graph.
+ 
+    Args:
+      graph (dict): The graph of nodes and their connections.
+      filtered_data (json): The filtered data from Overpass API.
+ 
+    Returns:
+      dict: The updated graph with connections for stranded nodes.
+  """
   for node_id in graph:
     if not graph[node_id]:  # This node is stranded
       # Find the stranded node's latitude and longitude directly from its first occurrence in the elements
@@ -110,6 +152,20 @@ def find_connections_for_stranded_nodes(graph, filtered_data):
 
 
 def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, elements, stranded_node_id, graph, max_distance_km=0.2):
+    """
+    Find nodes within a certain distance of the stranded node or the nearest node if none are found within the distance.
+ 
+    Args:
+      stranded_node_lat (float): The latitude of the stranded node.
+      stranded_node_lon (float): The longitude of the stranded node.
+      elements (list): The elements from the Overpass API response.
+      stranded_node_id (int): The ID of the stranded node.
+      graph (dict): The graph of nodes and their connections.
+      max_distance_km (float): The maximum distance in kilometers.
+ 
+    Returns:
+      list: The list of nodes within the distance or the nearest node.
+    """
     closest_nodes = []
     min_distance = float('inf')
     nearest_node_id = None
@@ -118,79 +174,100 @@ def find_nodes_within_distance_or_nearest(stranded_node_lat, stranded_node_lon, 
     existing_connections = {conn[0] for conn in graph.get(stranded_node_id, [])}
 
     for element in elements:
-        element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
+      element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
 
-        for i, geom in enumerate(element.get('geometry', [])):
-            lat, lon = geom['lat'], geom['lon']
-            node_id = element['nodes'][i]
-            # Skip if the current node is the stranded node itself or already connected
-            if node_id == stranded_node_id or node_id in existing_connections:
-                continue
+      for i, geom in enumerate(element.get('geometry', [])):
+        lat, lon = geom['lat'], geom['lon']
+        node_id = element['nodes'][i]
+        # Skip if the current node is the stranded node itself or already connected
+        if node_id == stranded_node_id or node_id in existing_connections:
+          continue
 
-            distance = haversine(stranded_node_lat, stranded_node_lon, lat, lon)
+        distance = haversine(stranded_node_lat, stranded_node_lon, lat, lon)
 
-            # For lifts, ensure only the first node is considered for connections
-            if element_type == 'lift' and i != 0:
-                continue  # Skip all nodes except the first node of a lift
+        # For lifts, ensure only the first node is considered for connections
+        if element_type == 'lift' and i != 0:
+          continue  # Skip all nodes except the first node of a lift
 
-            # Check distance against the 50m criterion for all nodes
-            if distance <= max_distance_km:
-                if distance < min_distance:
-                    min_distance = distance
-                    nearest_node_id = node_id
-                # For lifts, since we continue the loop for i != 0, this will only append the first node
-                closest_nodes.append((node_id, distance))
+        # Check distance against the 50m criterion for all nodes
+        if distance <= max_distance_km:
+          if distance < min_distance:
+            min_distance = distance
+            nearest_node_id = node_id
+          # For lifts, since we continue the loop for i != 0, this will only append the first node
+          closest_nodes.append((node_id, distance))
 
     # If no nodes are found within 50 meters, include the nearest found node outside this range
     if not closest_nodes and nearest_node_id:
-        closest_nodes.append((nearest_node_id, min_distance))
+      closest_nodes.append((nearest_node_id, min_distance))
 
     return closest_nodes
 
 
 def get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance):
-    # Create a lookup table for node IDs to their coordinates
-    node_id_to_coords = {}
-    for element in filtered_data['elements']:
-        for i, node_id in enumerate(element['nodes']):
-            lat, lon = element['geometry'][i]['lat'], element['geometry'][i]['lon']
-            node_id_to_coords[node_id] = (lat, lon)
+  """
+    Generate the GeoJSON data for the shortest path and returns it for the /generate-route endpoint
+ 
+    Args:
+      filtered_data (json): The filtered data from Overpass API.
+      shortest_path (list): The shortest path.
+      shortest_distance (float): The shortest distance.
+ 
+    Returns:
+      geojson: The GeoJSON data.
+  """
+  # Create a lookup table for node IDs to their coordinates
+  node_id_to_coords = {}
+  for element in filtered_data['elements']:
+    for i, node_id in enumerate(element['nodes']):
+      lat, lon = element['geometry'][i]['lat'], element['geometry'][i]['lon']
+      node_id_to_coords[node_id] = (lat, lon)
 
-    # Initialize an empty GeoJSON FeatureCollection
-    geojson_data = {
-        "type": "FeatureCollection",
-        "features": []
+  # Initialize an empty GeoJSON FeatureCollection
+  geojson_data = {
+    "type": "FeatureCollection",
+    "features": []
+  }
+
+  # Check if there is a shortest path to convert
+  if shortest_path:
+    # Extract coordinates from the node IDs in the shortest path
+    path_coordinates = [node_id_to_coords.get(node_id, ("Unknown", "Unknown")) for node_id in shortest_path]
+
+    # Ensure coordinates are not 'Unknown' before attempting to switch to avoid errors
+    path_coordinates = [(lon, lat) for lat, lon in path_coordinates if (lat, lon) != ("Unknown", "Unknown")]
+
+    # Create a GeoJSON Feature for the LineString representing the shortest path
+    path_feature = {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": path_coordinates
+      },
+      "properties": {
+        "description": "Shortest Path",
+        "distance_km": shortest_distance,
+        "piste:type": "downhill"
+      }
     }
 
-    # Check if there is a shortest path to convert
-    if shortest_path:
-        # Extract coordinates from the node IDs in the shortest path
-        path_coordinates = [node_id_to_coords.get(node_id, ("Unknown", "Unknown")) for node_id in shortest_path]
+    # Add the path Feature to the FeatureCollection
+    geojson_data["features"].append(path_feature)
 
-        # Ensure coordinates are not 'Unknown' before attempting to switch to avoid errors
-        path_coordinates = [(lon, lat) for lat, lon in path_coordinates if (lat, lon) != ("Unknown", "Unknown")]
-
-        # Create a GeoJSON Feature for the LineString representing the shortest path
-        path_feature = {
-            "type": "Feature",
-            "geometry": {
-                "type": "LineString",
-                "coordinates": path_coordinates
-            },
-            "properties": {
-                "description": "Shortest Path",
-                "distance_km": shortest_distance,
-                "piste:type": "downhill"
-            }
-        }
-
-        # Add the path Feature to the FeatureCollection
-        geojson_data["features"].append(path_feature)
-
-    return geojson_data
+  return geojson_data
     
-
 def generate_shortest_route(start, end, overpassData):
+  """
+    Generate the shortest route between two points and returns it for the /generate-route endpoint
+ 
+    Args:
+      start (int): The first node id.
+      end (int): The second node id.
+      overpassData (json): The data from Overpass API send from BE.
+ 
+    Returns:
+      geojson: The GeoJSON data.
+  """
   filtered_data = overpassData
 
   if 'elements' in filtered_data and len(filtered_data['elements']) <= 0:
