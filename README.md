@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 To run the server, use following command:
 ```
-flask --app main --debug run 
+flask --app src.main --debug run 
 ```
 
 ## Function Documentation in Python:
