@@ -3,15 +3,11 @@ import math
 import heapq
 import json
 
-class DijkstraData:
-    """
-    Class to encapsulate data structures used in Dijkstra's algorithm.
-    """
-    def __init__(self, start_node, graph):
-        self.distances = {node: float('infinity') for node in graph}
-        self.distances[start_node] = 0
-        self.previous_nodes = {node: None for node in graph}
-        self.priority_queue = [(0, start_node)]
+from classes.node_processor import NodeProcessor
+from classes.djikstra_data import DijkstraData
+
+from utils.haversine import haversine
+
 
 def dijkstra(graph, start, end):
   dijkstra_data = DijkstraData(start, graph)
@@ -45,28 +41,6 @@ def explore_neighbors(graph, current_node, current_distance, dijkstra_data):
         dijkstra_data.distances[neighbor] = distance
         dijkstra_data.previous_nodes[neighbor] = current_node
         heapq.heappush(dijkstra_data.priority_queue, (distance, neighbor))
-
-def haversine(lat1, lon1, lat2, lon2):
-  # Radius of the Earth in kilometers
-  R = 6371.0
-
-  # Convert latitude and longitude from degrees to radians
-  lat1_rad = math.radians(lat1)
-  lon1_rad = math.radians(lon1)
-  lat2_rad = math.radians(lat2)
-  lon2_rad = math.radians(lon2)
-
-  # Difference in coordinates
-  dlat = lat2_rad - lat1_rad
-  dlon = lon2_rad - lon1_rad
-
-  # Haversine formula
-  a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
-  c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-  distance = R * c
-
-  return distance
 
 
 # Create a graph from the data and connect nodes
@@ -125,43 +99,19 @@ def update_graph_with_connections(graph, node_id, nodes):
 
 
 def find_nodes_within_distance_or_nearest(elements, graph, node, max_distance_km=0.2):
-    closest_nodes = []
-    min_distance = float('inf')
-    nearest_node_id = None
-
-    # Retrieve existing connections for the stranded node to exclude them
     existing_connections = {conn[0] for conn in graph.get(node.node_id, [])}
+    processor = NodeProcessor(node, existing_connections, max_distance_km)
 
     for element in elements:
-      element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
+        element_type = 'lift' if 'aerialway' in element.get('tags', {}) else 'piste'
+        for i, geom in enumerate(element.get('geometry', [])):
+            processor.process_element_node(element, i, geom, element_type)
 
-      for i, geom in enumerate(element.get('geometry', [])):
-          lat, lon = geom['lat'], geom['lon']
-          node_id = element['nodes'][i]
-          # Skip if the current node is the stranded node itself or already connected
-          if node_id == node.node_id or node_id in existing_connections:
-              continue
-
-          distance = haversine(node.lat, node.lon, lat, lon)
-
-          # For lifts, ensure only the first node is considered for connections
-          if element_type == 'lift' and i != 0:
-              continue  # Skip all nodes except the first node of a lift
-
-          # Check distance against the 50m criterion for all nodes
-          if distance <= max_distance_km:
-              if distance < min_distance:
-                  min_distance = distance
-                  nearest_node_id = node_id
-              # For lifts, since we continue the loop for i != 0, this will only append the first node
-              closest_nodes.append((node_id, distance))
-
-    # If no nodes are found within 50 meters, include the nearest found node outside this range
-    if not closest_nodes and nearest_node_id:
-        closest_nodes.append((nearest_node_id, min_distance))
+    closest_nodes = processor.closest_nodes
+    if not closest_nodes and processor.nearest_node_details['nearest_node_id']:
+        closest_nodes.append((processor.nearest_node_details['nearest_node_id'], processor.nearest_node_details['min_distance']))
 
     return closest_nodes
-
 
 def get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance):
     # Create a lookup table for node IDs to their coordinates
