@@ -1,6 +1,6 @@
 from flask import Flask, request
 from data_formatter import data_formatter
-from route_creator import generate_shortest_route
+from route_creation.route_creator import generate_shortest_route
 
 app = Flask(__name__)
 
