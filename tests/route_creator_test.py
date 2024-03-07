@@ -22,28 +22,34 @@ def test_generate_shortest_route():
 
     # Now, geojson_data contains the data loaded from isabergData.json
     # Use this data to test generate_shortest_route
-    start = 360881297
-    end = 360873433
+    start = {'lat': 57.43440, 'lon': 13.61891}
+    end = {'lat': 57.43408, 'lon': 13.60994}
     result = generate_shortest_route(start, end, geojson_data)
+    print(result)
 
     expected_route = {
-      'features': [{
-        'geometry': {
-          'coordinates': [
-            (13.6189104, 57.4343994), 
-            (13.6174589, 57.4336116), 
-            (13.6128704, 57.4357791),
-            (13.614203, 57.4342486)
-          ],
-          'type': 'LineString'
-        },
-        'properties': {
-          'description': 'Shortest Path',
-          'distance_km': 0.6767107552322736,  # Adjust the distance as necessary
-          'piste:type': 'downhill'
-        },
-        'type': 'Feature'
-      }],
-      'type': 'FeatureCollection'
-    }
+      'type': 'FeatureCollection',
+      'features': [
+        {'type': 'Feature', 
+        'geometry': {'type': 'LineString', 'coordinates': [
+          (13.6189104, 57.4343994),
+          (13.6180357, 57.4337156),
+          (13.617388, 57.4335146),
+          (13.6175624, 57.4327791),
+          (13.6177393, 57.4322106),
+          (13.6178398, 57.4321149),
+          (13.6171322, 57.4320809),
+          (13.6155724, 57.4320059),
+          (13.6139298, 57.431927),
+          (13.611095, 57.4317907),
+          (13.6103415, 57.4317545),
+          (13.6101596, 57.4320558),
+          (13.6103643, 57.4326649),
+          (13.6102709, 57.4333236),
+          (13.6099347, 57.4340827)]},
+        'properties': {'description':
+          'Shortest Path',
+          'distance_km': 1.0107236513009064,
+          'piste:type': 'downhill'}}]}
+          
     assert result == expected_route
