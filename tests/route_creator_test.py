@@ -1,7 +1,7 @@
 import pytest
 import json
 import os
-from route_creator import haversine, generate_shortest_route
+from route_creation.route_creator import haversine, generate_shortest_route
 
 def test_haversine_distance_known_points():
     # Coordinates of New York and London
