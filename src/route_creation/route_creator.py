@@ -1,7 +1,7 @@
 from .dijkstra import dijkstra
 from .graph import create_graph, find_connections_for_stranded_nodes, find_stranded_node_coordinates
 from .haversine import haversine
-
+import numpy as np
 
 def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_distance:float):
     """Converts the shortest path to a GeoJSON FeatureCollection.
@@ -87,20 +87,26 @@ def generate_shortest_route(start: dict[float,float], end: dict[float,float], ov
   return geojson_data
 
 def find_nearest_node(coords, graph, elements):
-    """Finds the id of the nearest node in a graph to the given coordinates.
-
-    Args:
-        coords (dict[float,float]): The coordinates to find the nearest node to
-
-    Returns:
-        int: The id of the nearest node
     """
-    nearest_node = None
-    min_distance = float('inf')
-    for node_id, node_coords in graph.items():
-        lat, lon = find_stranded_node_coordinates(node_id, elements)
-        distance = haversine(coords.get('lat'), coords.get('lon'), lat, lon)
-        if distance < min_distance:
-            min_distance = distance
-            nearest_node = node_id
-    return nearest_node
+    Finds the id of the nearest node in a graph to the given coordinates using NumPy for optimization.
+    
+    Args:
+    coords (dict[float, float]): The coordinates to find the nearest node to
+    graph (dict): The graph of nodes and their connections
+    elements (dict): The GeoJSON data from the Overpass API
+    
+    Returns:
+    int: The id of the nearest node
+    """
+    # Extract latitudes and longitudes from graph
+    node_ids = np.array(list(graph.keys()))
+    lat_lons = np.array([find_stranded_node_coordinates(node_id, elements) for node_id in node_ids])
+    
+    # Calculate distances using the Haversine formula
+    distances = haversine(coords['lat'], coords['lon'], lat_lons[:, 0], lat_lons[:, 1])
+    
+    # Find the index of the minimum distance
+    nearest_node_index = np.argmin(distances)
+    
+    # Return the id of the nearest node
+    return node_ids[nearest_node_index]
