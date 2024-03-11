@@ -1,3 +1,4 @@
+import numpy as np
 from .haversine import haversine
 from .node_links import find_nodes_within_distance_or_nearest
 from .classes import Node
@@ -18,26 +19,23 @@ def create_graph(filtered_data: dict):
 			create_vertex_connections(graph, element)
 	return graph
 
-def create_vertex_connections(graph: dict, element: dict):
-	"""Create connections between the nodes of an element in the graph.
-
-	Args:
-		graph (dict): The graph to add the connections to
-		element (dict): An element from the filtered geojson data
-	"""
-	for i in range(len(element['nodes']) - 1):
-		node_a = element['nodes'][i]
-		node_b = element['nodes'][i + 1]
-		lat1, lon1 = element['geometry'][i]['lat'], element['geometry'][i]['lon']
-		lat2, lon2 = element['geometry'][i + 1]['lat'], element['geometry'][i + 1]['lon']
-		distance = haversine(lat1, lon1, lat2, lon2)
-
-		if node_a not in graph:
-				graph[node_a] = []
-		if node_b not in graph:
-				graph[node_b] = []
-
-		graph[node_a].append((node_b, distance))
+def create_vertex_connections(graph, element):
+    """Optimized version using NumPy for distance calculations."""
+    node_ids = element['nodes']
+    geometry = np.array([(geom['lat'], geom['lon']) for geom in element['geometry']])
+    
+    # Calculate distances between consecutive nodes in a vectorized manner
+    lat1, lon1 = geometry[:-1, 0], geometry[:-1, 1]
+    lat2, lon2 = geometry[1:, 0], geometry[1:, 1]
+    distances = haversine(lat1, lon1, lat2, lon2)
+    
+    for i, distance in enumerate(distances):
+        node_a, node_b = node_ids[i], node_ids[i + 1]
+        if node_a not in graph:
+            graph[node_a] = []
+        if node_b not in graph:
+            graph[node_b] = []
+        graph[node_a].append((node_b, distance))
 
 def find_connections_for_stranded_nodes(graph: dict, filtered_data: dict):
 	"""Find connections for stranded nodes in the graph (nodes with no connections).
