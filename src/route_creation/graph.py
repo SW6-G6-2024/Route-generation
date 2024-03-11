@@ -54,7 +54,7 @@ def find_connections_for_stranded_nodes(graph: dict, filtered_data: dict):
 			stranded_lat, stranded_lon = find_stranded_node_coordinates(node_id, filtered_data)
 			if stranded_lat is not None and stranded_lon is not None:
 				node = Node(node_id, stranded_lat, stranded_lon)
-				nodes = find_nodes_within_distance_or_nearest(filtered_data['elements'], graph, node)
+				nodes = find_nodes_within_distance_or_nearest(filtered_data, graph, node)
 				update_graph_with_connections(graph, node_id, nodes)
 	return graph
 

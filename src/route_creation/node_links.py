@@ -1,88 +1,55 @@
+import numpy as np
 from .haversine import haversine
 from .classes import Node, NearestNode, NodeResults
 
 
-def find_nodes_within_distance_or_nearest(elements: dict, graph: dict, node: Node):
-	"""Find nodes within 100 meters of the stranded node or the nearest node outside this range.
+def find_nodes_within_distance_or_nearest(elements, graph, node):
+    """Find nodes within 100 meters of the stranded node or the nearest node outside this range using NumPy.
+    
+    Args:
+        elements (dict): The elements from the filtered geojson data
+        graph (dict): The graph representing the connections between nodes
+        node (Node): The stranded node
 
-	Args:
-			elements (dict): The elements from the filtered geojson data
-			graph (dict): The graph representing the connections between nodes
-			node (Node): The stranded node
+    Returns:
+        NodeResults: A list of the closest nodes to the stranded node
+    """
+    node_results = NodeResults()
 
-	Returns:
-			list: A list of the closest nodes to the stranded node
-	"""
-	node_results = NodeResults()
-
-	# Retrieve existing connections for the stranded node to exclude them
-	existing_connections = {conn[0] for conn in graph.get(node.node_id, [])}
-
-	# Find the nearest node within 100 meters
-	for element in elements:
-		node_results = find_nearest_nodes(
-			node, node_results, existing_connections, element)
-
-	# If no nodes are found within 100 meters, include the nearest found node outside this range
-	if not node_results.closest_nodes and node_results.nearest_node.node_id:
-		node_results.closest_nodes.append(
-			(node_results.nearest_node.node_id, node_results.nearest_node.distance))
-
-	return node_results.closest_nodes
-
-
-def find_nearest_nodes(node: Node, node_results: NodeResults, existing_connections: dict, element: dict):
-	"""Find the nearest nodes to a stranded node within 100 meters.
-
-	Args:
-			node (Node): The stranded node
-			node_results (NodeResults): The results of the node search
-			existing_connections (dict): The existing connections for the stranded node
-			element (dict): An element from the filtered geojson data
-
-	Returns:
-			NodeResults: The updated results of the node search
-	"""
-	# Determine the type of element (piste or lift)
-	element_type = 'lift' if 'aerialway' in element.get(
-		'tags', {}) else 'piste'
-
-	# Iterate over the nodes of the element to find the nearest node
-	for i, geom in enumerate(element.get('geometry', [])):
-		lat, lon = geom['lat'], geom['lon']
-		node_id = element['nodes'][i]
-		# Skip if the current node is the stranded node itself or already connected
-		if node_id == node.node_id or node_id in existing_connections:
-			continue
-
-		distance = haversine(node.lat, node.lon, lat, lon)
-
-		# For lifts, ensure only the first node is considered for connections
-		if element_type == 'lift' and i != 0:
-			continue  # Skip all nodes except the first node of a lift
-
-			# Check distance against the 50m criterion for all nodes
-		node_results.nearest_node, node_results.closest_nodes = check_distance(
-			node_results, node_id, distance)
-	return node_results
-
-
-def check_distance(node_results: NodeResults, node_id: int, distance: float):
-	"""Check if the distance to a node is less than the current nearest node.
-
-	Args:
-			node_results (NodeResults): The results of the node search
-			node_id (int): The ID of the node
-			distance (float): The distance to the node
-
-	Returns:
-			tuple[NearestNode, list]: The updated results of the node search, and the list of the closest nodes
-	"""
-	max_distance_km = 0.1
-	if distance <= max_distance_km:
-		if distance < node_results.nearest_node.distance:
-			node_results.nearest_node.distance = distance
-			node_results.nearest_node.node_id = node_id
-			# For lifts, since we continue the loop for i != 0, this will only append the first node
-		node_results.closest_nodes.append((node_id, distance))
-	return NearestNode(node_results.nearest_node.distance, node_results.nearest_node.node_id), node_results.closest_nodes
+    # Retrieve existing connections for the stranded node to exclude them
+    existing_connections = {conn[0] for conn in graph.get(node.node_id, [])}
+    
+    # Extract all node positions and IDs from elements
+    all_node_ids = []
+    all_lats = []
+    all_lons = []
+    
+    for element in elements['elements']:
+        for i, geom in enumerate(element.get('geometry', [])):
+            lat, lon = geom['lat'], geom['lon']
+            node_id = element['nodes'][i]
+            if node_id != node.node_id and node_id not in existing_connections:
+                all_node_ids.append(node_id)
+                all_lats.append(lat)
+                all_lons.append(lon)
+                
+    # Convert to NumPy arrays
+    all_lats = np.array(all_lats)
+    all_lons = np.array(all_lons)
+    distances = haversine(node.lat, node.lon, all_lats, all_lons)
+    
+    # Find nodes within 100 meters
+    within_distance_indices = np.where(distances <= 0.1)[0]
+    
+    # Update nearest and closest nodes
+    for index in within_distance_indices:
+        node_results.closest_nodes.append((all_node_ids[index], distances[index]))
+    
+    # If no nodes found within 100m, find the nearest node outside this range
+    if not node_results.closest_nodes:
+        nearest_index = np.argmin(distances)
+        node_results.nearest_node.distance = distances[nearest_index]
+        node_results.nearest_node.node_id = all_node_ids[nearest_index]
+        node_results.closest_nodes.append((node_results.nearest_node.node_id, node_results.nearest_node.distance))
+    
+    return node_results.closest_nodes

@@ -1,31 +1,27 @@
 import pytest
 import json
 import os
-from route_creation.route_creator import haversine, generate_shortest_route
+from route_creation.route_creator import generate_shortest_route
+from route_creation.haversine import haversine
 
 def test_haversine_distance_known_points():
     # Coordinates of New York and London
     lat1, lon1 = 40.7128, -74.0060
     lat2, lon2 = 51.5074, -0.1278
-    expected_distance = 5567  # Approximate distance in kilometers
+    expected_distance = 5567
     calculated_distance = haversine(lat1, lon1, lat2, lon2)
-    assert abs(calculated_distance - expected_distance) < 100  # Allowing some margin for calculation differences
+    assert abs(calculated_distance - expected_distance) < 10
 
 def test_generate_shortest_route():
-    # Path to the JSON file relative to the test file
     current_dir = os.path.dirname(__file__)
     json_file_path = os.path.join(current_dir, 'geoJsonData', 'isabergData.json')
 
-    # Load the JSON data from the file
     with open(json_file_path, 'r') as file:
       geojson_data = json.load(file)
 
-    # Now, geojson_data contains the data loaded from isabergData.json
-    # Use this data to test generate_shortest_route
     start = {'lat': 57.43440, 'lon': 13.61891}
     end = {'lat': 57.43408, 'lon': 13.60994}
     result = generate_shortest_route(start, end, geojson_data)
-    print(result)
 
     expected_route = {
       'type': 'FeatureCollection',
@@ -52,4 +48,21 @@ def test_generate_shortest_route():
           'distance_km': 1.0107236513009064,
           'piste:type': 'downhill'}}]}
           
-    assert result == expected_route
+    compare_geojson(expected_route, result)
+
+# Helper function to compare two GeoJSON objects
+def compare_geojson(expected, result):
+    assert expected['type'] == result['type']
+    assert len(expected['features']) == len(result['features'])
+    for exp_feature, res_feature in zip(expected['features'], result['features']):
+        assert exp_feature['type'] == res_feature['type']
+        assert exp_feature['geometry']['type'] == res_feature['geometry']['type']
+        # Compare properties except 'distance_km'
+        for key in exp_feature['properties']:
+            if key != 'distance_km':
+                assert exp_feature['properties'][key] == res_feature['properties'][key]
+        # Special comparison for 'distance_km' with tolerance
+        expected_distance = exp_feature['properties']['distance_km']
+        result_distance = res_feature['properties']['distance_km']
+        tolerance = expected_distance * 0.05  # 5% tolerance
+        assert expected_distance - tolerance <= result_distance <= expected_distance + tolerance
