@@ -9,7 +9,7 @@ def test_haversine_distance_known_points():
 		lat2, lon2 = 51.5074, -0.1278
 		expected_distance = 5567  # Approximate distance in kilometers
 		calculated_distance = haversine(lat1, lon1, lat2, lon2)
-		assert abs(calculated_distance - expected_distance) < 100  # Allowing some margin for calculation differences
+		assert abs(calculated_distance - expected_distance) < 10  # Allowing some margin for calculation differences
 
 def test_generate_shortest_route():
 		# Path to the JSON file relative to the test file
