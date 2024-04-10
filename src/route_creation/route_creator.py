@@ -89,9 +89,7 @@ def generate_shortest_route(start: dict[float,float], end: dict[float,float], ov
 	# Creates the step-by-step guide
 	step_guide = step_by_step_guide(shortest_path, filtered_data)
 
-	print(step_guide)
-
-	return geojson_data
+	return [geojson_data, step_guide]
 
 def find_nearest_node(coords, elements):
 	"""Finds the id of the nearest node in a graph to the given coordinates.
