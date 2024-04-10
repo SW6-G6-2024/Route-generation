@@ -67,9 +67,7 @@ def generate_shortest_route(start: dict[float,float], end: dict[float,float], ov
 
 	Returns:
 		dict: A GeoJSON FeatureCollection representing the shortest path
-	"""
-  
-  
+	"""  
 	filtered_data = overpassData
 
 	if 'elements' in filtered_data and len(filtered_data['elements']) <= 0:
