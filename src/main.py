@@ -1,5 +1,5 @@
 from flask import Flask, request
-from route_creation.route_creator import generate_shortest_route
+from .route_creation.route_creator import generate_shortest_route
 
 app = Flask(__name__)
 

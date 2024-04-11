@@ -25,7 +25,6 @@ def test_generate_shortest_route():
 		start = {'lat': 57.43440, 'lon': 13.61891}
 		end = {'lat': 57.43408, 'lon': 13.60994}
 		result = generate_shortest_route(start, end, geojson_data)
-		print(result)
 
 		expected_route = {
 			'type': 'FeatureCollection', 
@@ -48,4 +47,4 @@ def test_generate_shortest_route():
 							(13.6102709, 57.4333236), (13.6099347, 57.4340827), (13.6094631, 57.4342844)]}, 
 				'properties': {'description': 'Shortest Path', 'distance_km': 1.9531140006376295, 'piste:type': 'downhill'}}]}
 					
-		assert result == expected_route
+		assert result[0] == expected_route

@@ -1,6 +1,7 @@
 from .dijkstra import dijkstra
 from .graph import create_graph, find_connections_for_stranded_nodes, find_stranded_node_coordinates
 from .haversine import haversine
+from .step_by_step import step_by_step_guide
 
 
 def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_distance:float):
@@ -66,9 +67,7 @@ def generate_shortest_route(start: dict[float,float], end: dict[float,float], ov
 
 	Returns:
 		dict: A GeoJSON FeatureCollection representing the shortest path
-	"""
-  
-  
+	"""  
 	filtered_data = overpassData
 
 	if 'elements' in filtered_data and len(filtered_data['elements']) <= 0:
@@ -85,7 +84,10 @@ def generate_shortest_route(start: dict[float,float], end: dict[float,float], ov
 	# Use the function and print the GeoJSON data
 	geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)
 
-	return geojson_data
+	# Creates the step-by-step guide
+	step_guide = step_by_step_guide(shortest_path, filtered_data)
+
+	return [geojson_data, step_guide]
 
 def find_nearest_node(coords, elements):
 	"""Finds the id of the nearest node in a graph to the given coordinates.
