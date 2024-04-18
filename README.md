@@ -35,9 +35,17 @@ pip install -r requirements.txt
 ```
 
 To run the server, use following command:
+
+Windows:
 ```
-flask --app src.main --debug run 
+py src/main.py
 ```
+
+Unix/Mac:
+```
+python3 src/main.py
+```
+
 
 ## Function Documentation in Python:
 
