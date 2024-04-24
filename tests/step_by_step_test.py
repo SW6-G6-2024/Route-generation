@@ -19,4 +19,41 @@ def test_step_by_step_guide():
   
 
   result = step_by_step_guide(shortest_path_expected, geojson_data)
-  assert result == ['Norrliften', 'Transporten', 'Gamla backen', 'Slalombacken', 'Isabergsexpressen', 'Familjebacken', 'Toppliftarna']
+  assert result == [
+    {
+    'difficulty': None,
+    'lift_type': 'chair_lift',
+    'name': 'Norrliften'
+    },
+    {
+        'difficulty': 'novice', 
+        'lift_type': None,
+        'name': 'Transporten'
+    },
+    {
+        'difficulty': 'intermediate',
+        'lift_type': None,
+        'name': 'Gamla backen'
+    },
+    {
+        'difficulty': 'novice',
+        'lift_type': None,
+        'name': 'Slalombacken'
+    },
+    {
+        'difficulty': None,
+        'lift_type': 'chair_lift',
+        'name': 'Isabergsexpressen'
+    },
+    {
+        'difficulty': 'intermediate',
+        'lift_type': None,
+        'name': 'Familjebacken'
+    },
+    {
+        'difficulty': None,
+        'lift_type': 'platter',
+        'name': 'Toppliftarna'
+    }
+  ]
+  
