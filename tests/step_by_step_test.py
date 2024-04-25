@@ -1,7 +1,8 @@
 import pytest
 import json
 import os
-from route_creation.step_by_step import step_by_step_guide
+
+from src.route_creation.step_by_step import step_by_step_guide
 
 def test_step_by_step_guide():
   # Path to the JSON file relative to the test file
