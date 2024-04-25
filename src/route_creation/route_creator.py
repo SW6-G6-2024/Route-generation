@@ -57,7 +57,7 @@ def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_d
 	return geojson_data
 	
 
-def generate_rated_route(start: dict[float,float], end: dict[float,float], overpassData: dict):
+def generate_rated_route(start: dict[float,float], end: dict[float,float], overpassData: dict, isBestRoute: bool = False):
 	"""Generates the shortest route between two points using the Dijkstra algorithm.
 
 	Args:
@@ -76,18 +76,17 @@ def generate_rated_route(start: dict[float,float], end: dict[float,float], overp
 	start_node = find_nearest_node(start, filtered_data)
 	end_node = find_nearest_node(end, filtered_data)
 
-	graph = create_graph(filtered_data)
-	graph = find_connections_for_stranded_nodes(graph, filtered_data)
+	graph = create_graph(filtered_data, isBestRoute)
+	graph = find_connections_for_stranded_nodes(graph, filtered_data, isBestRoute)
 
 	shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
-	print("Shortest path:", shortest_path)
-	print("Minimum accumulated weight:", shortest_distance)
 
 	# Use the function and print the GeoJSON data
 	geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)
 
 	# Creates the step-by-step guide
 	step_guide = step_by_step_guide(shortest_path, filtered_data)
+	print(geojson_data)
 
 	return [geojson_data, step_guide]
 

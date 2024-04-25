@@ -5,7 +5,7 @@ from .classes import Node
 # Create a graph from the data and connect nodes
 
 
-def create_graph(filtered_data: dict):
+def create_graph(filtered_data: dict, isBestRoute: bool = False):
 	"""Create a graph from the filtered data.
 
 	Args:
@@ -17,11 +17,11 @@ def create_graph(filtered_data: dict):
 	graph = {}
 	for element in filtered_data['elements']:
 		if 'nodes' in element and 'geometry' in element:
-			create_vertex_connections(graph, element)
+			create_vertex_connections(graph, element, isBestRoute)
 	return graph
 
 
-def create_vertex_connections(graph: dict, element: dict):
+def create_vertex_connections(graph: dict, element: dict, isBestRoute: bool = False):
     """Create connections between the nodes of an element in the graph.
 
     Args:
@@ -37,9 +37,9 @@ def create_vertex_connections(graph: dict, element: dict):
         lat2, lon2 = element['geometry'][i + 1]['lat'], element['geometry'][i + 1]['lon']
         distance = haversine(lat1, lon1, lat2, lon2)
         rating = element.get('rating', 0)
-        weight = 20
+        weight = (6 - rating) if isBestRoute else distance
 
-        if piste_type:  # Check if piste_type is not None
+        if piste_type and isBestRoute:
             weight = 6 - rating
 
         if node_a not in graph:
@@ -50,7 +50,7 @@ def create_vertex_connections(graph: dict, element: dict):
         graph[node_a].append((node_b, weight))
 
 
-def find_connections_for_stranded_nodes(graph: dict, filtered_data: dict):
+def find_connections_for_stranded_nodes(graph: dict, filtered_data: dict, isBestRoute: bool = False):
 	"""Find connections for stranded nodes in the graph (nodes with no connections).
 
 	Args:
@@ -65,8 +65,8 @@ def find_connections_for_stranded_nodes(graph: dict, filtered_data: dict):
 			stranded_lat, stranded_lon = find_stranded_node_coordinates(node_id, filtered_data)
 			if stranded_lat is not None and stranded_lon is not None:
 				node = Node(node_id, stranded_lat, stranded_lon)
-				nodes = find_nodes_within_distance_or_nearest(filtered_data['elements'], graph, node)
-				update_graph_with_connections(graph, node_id, nodes)
+				nodes = find_nodes_within_distance_or_nearest(filtered_data['elements'], graph, node, isBestRoute)
+				update_graph_with_connections(graph, node_id, nodes, isBestRoute)
 	return graph
 
 def find_stranded_node_coordinates(node_id: int, filtered_data: dict):
@@ -85,7 +85,12 @@ def find_stranded_node_coordinates(node_id: int, filtered_data: dict):
 			return element['geometry'][index]['lat'], element['geometry'][index]['lon']
 	return None, None
 
-def update_graph_with_connections(graph, node_id, nodes):
-	for nearest_node, weight in nodes:
-		if nearest_node != node_id and (nearest_node, weight) not in graph[node_id]:
-			graph[node_id].append((nearest_node, weight))
+def update_graph_with_connections(graph, node_id, nodes, isBestRoute: bool = False):
+  if isBestRoute:
+    for nearest_node, weight in nodes:
+      if nearest_node != node_id and (nearest_node, weight) not in graph[node_id]:
+        graph[node_id].append((nearest_node, weight))
+  else:
+    for nearest_node, distance in nodes:
+      if nearest_node != node_id and (nearest_node, distance) not in graph[node_id]:
+        graph[node_id].append((nearest_node, distance))

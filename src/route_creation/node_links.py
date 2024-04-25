@@ -2,7 +2,7 @@ from .haversine import haversine
 from .classes import Node, NearestNode, NodeResults
 
 
-def find_nodes_within_distance_or_nearest(elements: dict, graph: dict, node: Node):
+def find_nodes_within_distance_or_nearest(elements: dict, graph: dict, node: Node, isBestRoute: bool = False):
 	"""Find nodes within 100 meters of the stranded node or the nearest node outside this range.
 
 	Args:
@@ -21,17 +21,20 @@ def find_nodes_within_distance_or_nearest(elements: dict, graph: dict, node: Nod
 	# Find the nearest node within 100 meters
 	for element in elements:
 		node_results = find_nearest_nodes(
-			node, node_results, existing_connections, element)
+			node, node_results, existing_connections, element, isBestRoute)
 
+	# Use either the weight or distance for the nearest node
+	weight = node_results.nearest_node.weight if isBestRoute else node_results.nearest_node.distance
+ 
 	# If no nodes are found within 100 meters, include the nearest found node outside this range
 	if not node_results.closest_nodes and node_results.nearest_node.node_id:
 		node_results.closest_nodes.append(
-			(node_results.nearest_node.node_id, node_results.nearest_node.weight))
+			(node_results.nearest_node.node_id, weight))
 
 	return node_results.closest_nodes
 
 
-def find_nearest_nodes(node: Node, node_results: NodeResults, existing_connections: dict, element: dict):
+def find_nearest_nodes(node: Node, node_results: NodeResults, existing_connections: dict, element: dict, isBestRoute: bool = False):
 	"""Find the nearest nodes to a stranded node within 100 meters.
 
 	Args:
@@ -63,11 +66,11 @@ def find_nearest_nodes(node: Node, node_results: NodeResults, existing_connectio
 
 			# Check distance against the 50m criterion for all nodes
 		node_results.nearest_node, node_results.closest_nodes = check_distance(
-			node_results, node_id, distance)
+			node_results, node_id, distance, isBestRoute)
 	return node_results
 
 
-def check_distance(node_results: NodeResults, node_id: int, distance: float):
+def check_distance(node_results: NodeResults, node_id: int, distance: float, isBestRoute: bool = False):
 	"""Check if the distance to a node is less than the current nearest node.
 
 	Args:
@@ -79,10 +82,12 @@ def check_distance(node_results: NodeResults, node_id: int, distance: float):
 			tuple[NearestNode, list]: The updated results of the node search, and the list of the closest nodes
 	"""
 	max_distance_km = 0.1
+	weight = 6 if isBestRoute else distance
+ 
 	if distance <= max_distance_km:
 		if distance < node_results.nearest_node.distance:
 			node_results.nearest_node.distance = distance
 			node_results.nearest_node.node_id = node_id
 			# For lifts, since we continue the loop for i != 0, this will only append the first node
-		node_results.closest_nodes.append((node_id, 6))
+		node_results.closest_nodes.append((node_id, weight))
 	return NearestNode(node_results.nearest_node.distance, node_results.nearest_node.node_id), node_results.closest_nodes
