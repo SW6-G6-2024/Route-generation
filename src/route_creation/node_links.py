@@ -26,7 +26,7 @@ def find_nodes_within_distance_or_nearest(elements: dict, graph: dict, node: Nod
 	# If no nodes are found within 100 meters, include the nearest found node outside this range
 	if not node_results.closest_nodes and node_results.nearest_node.node_id:
 		node_results.closest_nodes.append(
-			(node_results.nearest_node.node_id, node_results.nearest_node.distance))
+			(node_results.nearest_node.node_id, node_results.nearest_node.weight))
 
 	return node_results.closest_nodes
 
@@ -84,5 +84,5 @@ def check_distance(node_results: NodeResults, node_id: int, distance: float):
 			node_results.nearest_node.distance = distance
 			node_results.nearest_node.node_id = node_id
 			# For lifts, since we continue the loop for i != 0, this will only append the first node
-		node_results.closest_nodes.append((node_id, distance))
+		node_results.closest_nodes.append((node_id, 6))
 	return NearestNode(node_results.nearest_node.distance, node_results.nearest_node.node_id), node_results.closest_nodes

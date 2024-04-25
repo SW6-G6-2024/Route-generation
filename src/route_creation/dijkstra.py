@@ -45,8 +45,8 @@ def explore_neighbors(graph:dict, current_node: int, current_distance: float, di
 			dijkstra_data (DijkstraData): The data structures used in Dijkstra's algorithm. Contains the distances, previous nodes, and priority queue
 	"""
 	for neighbor, weight in graph[current_node]:
-		#print("await", weight)
 		distance = current_distance + weight
+		print("Distance: ", distance, " Current Node: ", current_node, " Neighbor: ", neighbor, " Weight: ", weight)
 			
 		# If the distance to the neighbor is shorter by taking this path
 		if distance < dijkstra_data.distances[neighbor]:
