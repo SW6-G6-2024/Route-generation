@@ -1,5 +1,5 @@
 from .dijkstra import dijkstra
-from .graph import create_graph, find_connections_for_stranded_nodes, find_stranded_node_coordinates
+from .graph import create_graph, find_connections_for_stranded_nodes
 from .haversine import haversine
 from .step_by_step import step_by_step_guide
 
@@ -57,7 +57,7 @@ def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_d
 	return geojson_data
 	
 
-def generate_shortest_route(start: dict[float,float], end: dict[float,float], overpassData: dict):
+def generate_rated_route(start: dict[float,float], end: dict[float,float], overpassData: dict):
 	"""Generates the shortest route between two points using the Dijkstra algorithm.
 
 	Args:
@@ -80,6 +80,8 @@ def generate_shortest_route(start: dict[float,float], end: dict[float,float], ov
 	graph = find_connections_for_stranded_nodes(graph, filtered_data)
 
 	shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
+	print("Shortest path:", shortest_path)
+	print("Shortest distance:", shortest_distance)
 
 	# Use the function and print the GeoJSON data
 	geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)

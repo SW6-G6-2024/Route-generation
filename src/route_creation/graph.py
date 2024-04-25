@@ -3,6 +3,8 @@ from .node_links import find_nodes_within_distance_or_nearest
 from .classes import Node
 
 # Create a graph from the data and connect nodes
+
+
 def create_graph(filtered_data: dict):
 	"""Create a graph from the filtered data.
 
@@ -16,7 +18,9 @@ def create_graph(filtered_data: dict):
 	for element in filtered_data['elements']:
 		if 'nodes' in element and 'geometry' in element:
 			create_vertex_connections(graph, element)
+	print(graph)
 	return graph
+
 
 def create_vertex_connections(graph: dict, element: dict):
 	"""Create connections between the nodes of an element in the graph.
@@ -31,13 +35,15 @@ def create_vertex_connections(graph: dict, element: dict):
 		lat1, lon1 = element['geometry'][i]['lat'], element['geometry'][i]['lon']
 		lat2, lon2 = element['geometry'][i + 1]['lat'], element['geometry'][i + 1]['lon']
 		distance = haversine(lat1, lon1, lat2, lon2)
+		rating = element.get('rating', 0)
+		weight = 6 - rating
 
 		if node_a not in graph:
 				graph[node_a] = []
 		if node_b not in graph:
 				graph[node_b] = []
 
-		graph[node_a].append((node_b, distance))
+		graph[node_a].append((node_b, weight))
 
 def find_connections_for_stranded_nodes(graph: dict, filtered_data: dict):
 	"""Find connections for stranded nodes in the graph (nodes with no connections).
