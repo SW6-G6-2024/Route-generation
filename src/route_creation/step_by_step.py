@@ -20,7 +20,7 @@ def step_by_step_guide(shortest_path, overpassData):
     ]
     way_to_nodes = build_way_to_nodes_mapping(relevant_ways)
     refined_sequence = []
-
+    
     # Process the shortest path to refine the sequence of way names or IDs.
     refined_sequence, last_added_way_name = process_shortest_path(shortest_path, way_to_nodes, last_added_way_name)
 
@@ -40,7 +40,11 @@ def build_way_to_nodes_mapping(relevant_ways):
     way_to_nodes = {}
     for element in relevant_ways:
       way_name = element['tags'].get('name', element['tags'].get('ref', "?"))
-      way_to_nodes[way_name] = set(element['nodes'])
+      way_difficulty = element['tags'].get('piste:difficulty', None)
+      way_lift_type = element['tags'].get('aerialway', None)
+      if way_lift_type == 'drag_lift':
+        way_lift_type = element['tags'].get('aerialway:drag_lift')
+      way_to_nodes[way_name] = {'nodes': set(element['nodes']), 'difficulty': way_difficulty, 'lift_type': way_lift_type}
     return way_to_nodes
 
 def is_node_in_way(node_id, nodes, next_node_id):
@@ -63,13 +67,13 @@ def determine_current_way(node_id, next_node_id, way_to_nodes, last_added_way_na
     """
     Determines the current way based on the given node and the next node in the path.
     """
-    for way_name, nodes in way_to_nodes.items():
-        if is_node_in_way(node_id, nodes, next_node_id) and last_added_way_name != way_name:
-            return way_name
+    for way_name, data in way_to_nodes.items():
+        if is_node_in_way(node_id, data['nodes'], next_node_id) and last_added_way_name != way_name:
+            return {'name': way_name, 'difficulty': data['difficulty'], 'lift_type': data['lift_type']}
     return None
 
 
-def update_refined_sequence(way_name, refined_sequence, last_added_way_name):
+def update_refined_sequence(way, refined_sequence, last_added_way_name):
     """
     Updates the refined sequence with the current way name if it's different from the last added way.
 
@@ -81,9 +85,9 @@ def update_refined_sequence(way_name, refined_sequence, last_added_way_name):
     Returns:
         str: The updated last added way name/ref.
     """
-    if way_name:
-      refined_sequence.append(way_name)
-      return way_name  # Update the last added way name
+    if way:
+      refined_sequence.append(way)
+      return way['name']  # Update the last added way name
     return last_added_way_name
 
 
@@ -103,9 +107,8 @@ def process_shortest_path(shortest_path, way_to_nodes, last_added_way_name):
 
     for i, node_id in enumerate(shortest_path):
       next_node_id = shortest_path[i + 1] if i + 1 < len(shortest_path) else None
-      current_way_name = determine_current_way(node_id, next_node_id, way_to_nodes, last_added_way_name)
-      
-      if current_way_name:
-        last_added_way_name = update_refined_sequence(current_way_name, refined_sequence, last_added_way_name)
+      current_way = determine_current_way(node_id, next_node_id, way_to_nodes, last_added_way_name)
+      if current_way:
+        last_added_way_name = update_refined_sequence(current_way, refined_sequence, last_added_way_name)
 
     return refined_sequence, last_added_way_name
