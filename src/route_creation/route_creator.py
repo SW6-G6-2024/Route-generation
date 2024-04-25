@@ -81,7 +81,7 @@ def generate_rated_route(start: dict[float,float], end: dict[float,float], overp
 
 	shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
 	print("Shortest path:", shortest_path)
-	print("Shortest distance:", shortest_distance)
+	print("Minimum accumulated weight:", shortest_distance)
 
 	# Use the function and print the GeoJSON data
 	geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)

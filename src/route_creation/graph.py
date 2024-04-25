@@ -29,7 +29,6 @@ def create_vertex_connections(graph: dict, element: dict):
         element (dict): An element from the filtered geojson data
     """
     piste_type = element.get('tags', {}).get('piste:type', None)
-    print(element)
     
     for i in range(len(element['nodes']) - 1):
         node_a = element['nodes'][i]

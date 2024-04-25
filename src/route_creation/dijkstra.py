@@ -46,8 +46,7 @@ def explore_neighbors(graph:dict, current_node: int, current_distance: float, di
 	"""
 	for neighbor, weight in graph[current_node]:
 		distance = current_distance + weight
-		print("Distance: ", distance, " Current Node: ", current_node, " Neighbor: ", neighbor, " Weight: ", weight)
-			
+		
 		# If the distance to the neighbor is shorter by taking this path
 		if distance < dijkstra_data.distances[neighbor]:
 			dijkstra_data.distances[neighbor] = distance
