@@ -6,7 +6,7 @@ app = Flask(__name__)
 @app.route('/generate-route', methods=['POST'])
 def generate_route():
     request_data = request.get_json().get('data', "No data found")
-    isBestRoute = True
+    isBestRoute = False
     return generate_rated_route(request_data['start'], request_data['end'], request_data['geoJson'], isBestRoute)
 
 if __name__ == '__main__':

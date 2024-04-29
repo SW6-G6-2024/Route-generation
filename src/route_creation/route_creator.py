@@ -86,7 +86,6 @@ def generate_rated_route(start: dict[float,float], end: dict[float,float], overp
 
 	# Creates the step-by-step guide
 	step_guide = step_by_step_guide(shortest_path, filtered_data)
-	print(geojson_data)
 
 	return [geojson_data, step_guide]
 

@@ -25,11 +25,11 @@ class NearestNode:
 	"""A class to represent the nearest node to a stranded node.
 	
 	args:
-		distance (float): The distance to the nearest node
+		weight (float): The weight in km or rating to the nearest node
 		node_id (int): The ID of the nearest node
 	"""
-	def __init__(self, distance=float('inf'), node_id: int=None):
-		self.distance = distance
+	def __init__(self, weight=float('inf'), node_id: int=None):
+		self.weight = weight
 		self.node_id = node_id
 
 class NodeResults:
