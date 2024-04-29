@@ -16,7 +16,7 @@ class Node:
 		lat (float): The latitude of the node
 		lon (float): The longitude of the node
 	"""
-	def __init__(self, node_id: int, lat: float, lon: float):
+	def __init__(self, node_id, lat, lon):
 		self.node_id = node_id
 		self.lat = lat
 		self.lon = lon
@@ -39,5 +39,3 @@ class NodeResults:
 	def __init__(self):
 		self.closest_nodes = []
 		self.nearest_node = NearestNode()
-  
-type geo_json_data = dict[str, list[dict[str, dict[str, list[list[float]]],dict]]]

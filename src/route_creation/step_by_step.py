@@ -1,8 +1,4 @@
-type overpass_data = dict[float,str,dict[str,str],list[overpass_feature]]
-type overpass_feature = dict[str,int,dict[float,float,float,float],list[int],list[float,float],dict]
-type way_to_nodes = dict[str,dict[set[int]],str,str]
-
-def step_by_step_guide(shortest_path: list[int], overpassData: overpass_data):
+def step_by_step_guide(shortest_path, overpassData):
     """
     Uses the shortest path's node IDs to find and refine way elements from the overpass data.
     It then adds the way name/ref to a list, avoiding consecutive duplicates directly.
@@ -31,7 +27,7 @@ def step_by_step_guide(shortest_path: list[int], overpassData: overpass_data):
     return refined_sequence
 
 
-def build_way_to_nodes_mapping(relevant_ways: list[overpass_feature]):
+def build_way_to_nodes_mapping(relevant_ways):
     """
     Maps way names/refs to their nodes for the relevant ways.
     
@@ -51,7 +47,7 @@ def build_way_to_nodes_mapping(relevant_ways: list[overpass_feature]):
       way_to_nodes[way_name] = {'nodes': set(element['nodes']), 'difficulty': way_difficulty, 'lift_type': way_lift_type}
     return way_to_nodes
 
-def is_node_in_way(node_id: int, nodes: set[int], next_node_id: int):
+def is_node_in_way(node_id, nodes, next_node_id):
     """
     Checks if the current node and optionally the next node are part of the given way's nodes.
     
@@ -67,7 +63,7 @@ def is_node_in_way(node_id: int, nodes: set[int], next_node_id: int):
     next_node_in_way = next_node_id is None or next_node_id in nodes
     return current_node_in_way and next_node_in_way
 
-def determine_current_way(node_id: int, next_node_id: int, way_to_nodes: dict, last_added_way_name: str):
+def determine_current_way(node_id, next_node_id, way_to_nodes, last_added_way_name):
     """
     Determines the current way based on the given node and the next node in the path.
     """
@@ -95,7 +91,7 @@ def update_refined_sequence(way, refined_sequence, last_added_way_name):
     return last_added_way_name
 
 
-def process_shortest_path(shortest_path: list[int], way_to_nodes: way_to_nodes, last_added_way_name: str):
+def process_shortest_path(shortest_path, way_to_nodes, last_added_way_name):
     """
     Processes each node in the shortest path to refine the sequence of way names or refs.
 
