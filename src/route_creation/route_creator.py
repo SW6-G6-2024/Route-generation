@@ -89,11 +89,12 @@ def generate_rated_route(start: dict[float,float], end: dict[float,float], isBes
 
 	return [geojson_data, step_guide]
 
-def find_nearest_node(coords, elements):
+def find_nearest_node(coords: dict[float,float], elements: dict):
 	"""Finds the id of the nearest node in a graph to the given coordinates.
 
 	Args:
 		coords (dict[float,float]): The coordinates to find the nearest node to
+		elements (dict): The elements from the filtered GeoJSON data
 
 	Returns:
 		int: The id of the nearest node
