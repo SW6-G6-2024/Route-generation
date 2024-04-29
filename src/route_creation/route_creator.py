@@ -80,8 +80,6 @@ def generate_rated_route(start: dict[float,float], end: dict[float,float], overp
 	graph = find_connections_for_stranded_nodes(graph, filtered_data)
 
 	shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
-	print("Shortest path:", shortest_path)
-	print("Minimum accumulated weight:", shortest_distance)
 
 	# Use the function and print the GeoJSON data
 	geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)
@@ -91,11 +89,12 @@ def generate_rated_route(start: dict[float,float], end: dict[float,float], overp
 
 	return [geojson_data, step_guide]
 
-def find_nearest_node(coords, elements):
+def find_nearest_node(coords: dict[float,float], elements: dict):
 	"""Finds the id of the nearest node in a graph to the given coordinates.
 
 	Args:
 		coords (dict[float,float]): The coordinates to find the nearest node to
+		elements (dict): The elements from the filtered GeoJSON data
 
 	Returns:
 		int: The id of the nearest node

@@ -85,7 +85,14 @@ def find_stranded_node_coordinates(node_id: int, filtered_data: dict):
 			return element['geometry'][index]['lat'], element['geometry'][index]['lon']
 	return None, None
 
-def update_graph_with_connections(graph, node_id, nodes):
+def update_graph_with_connections(graph: dict, node_id: str, nodes: list):
+	"""Update the graph with connections for a stranded node.
+
+	Args:
+			graph (dict): The graph representing the connections between nodes
+			node_id (str): The ID of the stranded node
+			nodes (list): The list of nearest nodes to the stranded node
+	"""
 	for nearest_node, weight in nodes:
 		if nearest_node != node_id and (nearest_node, weight) not in graph[node_id]:
 			graph[node_id].append((nearest_node, weight))
