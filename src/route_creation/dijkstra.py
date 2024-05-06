@@ -1,39 +1,51 @@
 import heapq
 from .classes import DijkstraData
+import time
 
-def dijkstra(graph:dict, start:int, end:int):
-	"""
- Find the shortest path between two nodes in a graph using Dijkstra's algorithm based on some weight.
+def dijkstra(graph: dict, start: int, end: int):
+    """
+    Find the shortest path between two nodes in a graph using Dijkstra's algorithm based on some weight.
 
-	Args:
-		graph (dict): The graph to search for the shortest path
-		start (int): The id of the start node
-		end (int): The id of the end node
+    Args:
+        graph (dict): The graph to search for the shortest path
+        start (int): The id of the start node
+        end (int): The id of the end node
 
-	Returns:
-		dict, float: A list of node ids representing the shortest path, and the distance of the shortest path in kilometers
-	"""
-	dijkstra_data = DijkstraData(start, graph)
-	
-	while dijkstra_data.priority_queue:
-		# Get the node with the smallest distance
-		current_distance, current_node = heapq.heappop(dijkstra_data.priority_queue)
-		
-		# If we've reached the end node, we can stop
-		if current_node == end:
-			break
-		
-		explore_neighbors(graph, current_node, current_distance, dijkstra_data)
+    Returns:
+        dict, float: A list of node ids representing the shortest path, and the distance of the shortest path in kilometers
+    """
+    start_time = time.perf_counter()
+    dijkstra_data = DijkstraData(start, graph)
+    visited_nodes = set()
 
-	# Reconstruct the shortest path
-	path = []
-	current = end
-	while current is not None:
-		path.append(current)
-		current = dijkstra_data.previous_nodes[current]
-	path.reverse()
-	
-	return path, dijkstra_data.distances[end]
+    while dijkstra_data.priority_queue:
+        # Get the node with the smallest distance
+        current_distance, current_node = heapq.heappop(dijkstra_data.priority_queue)
+
+        # If we've reached the end node, we can stop
+        if current_node == end:
+            break
+
+        if current_node not in visited_nodes:
+            visited_nodes.add(current_node)
+            explore_neighbors(graph, current_node, current_distance, dijkstra_data)
+
+    # Reconstruct the shortest path
+    path = []
+    current = end
+    while current is not None:
+        path.append(current)
+        current = dijkstra_data.previous_nodes[current]
+    path.reverse()
+
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+
+    print(f"Running time: {elapsed_time:.6f} seconds")
+    print(f"Total nodes: {len(graph)}")
+    print(f"Visited nodes: {len(visited_nodes)}")
+
+    return path, dijkstra_data.distances[end]
 	
 def explore_neighbors(graph:dict, current_node: int, current_distance: float, dijkstra_data: DijkstraData):
 	"""Searches for the shortest path to the neighbors of the current node.
