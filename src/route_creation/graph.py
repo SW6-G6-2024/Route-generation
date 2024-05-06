@@ -1,6 +1,7 @@
 from .haversine import haversine
 from .node_links import find_nodes_within_distance_or_nearest
 from .classes import Node
+from .graph_nodes import update_graph_with_connections
 
 # Create a graph from the data and connect nodes
 
@@ -84,13 +85,3 @@ def find_stranded_node_coordinates(node_id: int, filtered_data: dict):
 			index = element['nodes'].index(node_id)
 			return element['geometry'][index]['lat'], element['geometry'][index]['lon']
 	return None, None
-
-def update_graph_with_connections(graph, node_id, nodes, isBestRoute: bool = False):
-  if isBestRoute:
-    for nearest_node, weight in nodes:
-      if nearest_node != node_id and (nearest_node, weight) not in graph[node_id]:
-        graph[node_id].append((nearest_node, weight))
-  else:
-    for nearest_node, distance in nodes:
-      if nearest_node != node_id and (nearest_node, distance) not in graph[node_id]:
-        graph[node_id].append((nearest_node, distance))
