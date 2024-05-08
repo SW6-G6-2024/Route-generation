@@ -64,7 +64,7 @@ def find_nearest_nodes(node: Node, node_results: NodeResults, existing_connectio
 		if element_type == 'lift' and i != 0:
 			continue  # Skip all nodes except the first node of a lift
 
-			# Check distance against the 50m criterion for all nodes
+			# Check distance against the 100m criterion for all nodes
 		node_results.nearest_node, node_results.closest_nodes = check_distance(
 			node_results, node_id, distance, isBestRoute)
 	return node_results
