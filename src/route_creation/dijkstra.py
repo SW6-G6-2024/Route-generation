@@ -3,15 +3,15 @@ from .classes import DijkstraData
 
 def dijkstra(graph: dict, start: int, end: int):
     """
-    Find the shortest path between two nodes in a graph using Dijkstra's algorithm based on some weight.
+    Find the most optimal path between two nodes in a graph using Dijkstra's algorithm based on some weight.
 
     Args:
-        graph (dict): The graph to search for the shortest path
+        graph (dict): The graph to search for the path
         start (int): The id of the start node
         end (int): The id of the end node
 
     Returns:
-        dict, float: A list of node ids representing the shortest path, and the weight of the shortest path
+        dict, float: A list of node ids representing the path, and the weight of the path
     """
     dijkstra_data = DijkstraData(start, graph)
 
@@ -25,7 +25,7 @@ def dijkstra(graph: dict, start: int, end: int):
         
         explore_neighbors(graph, current_node, current_weight, dijkstra_data)
 
-    # Reconstruct the shortest path
+    # Reconstruct the path
     path = []
     current = end
     while current is not None:
@@ -36,19 +36,19 @@ def dijkstra(graph: dict, start: int, end: int):
     return path, dijkstra_data.weights[end]
 
 def explore_neighbors(graph: dict, current_node: int, current_weight: float, dijkstra_data: DijkstraData):
-    """Searches for the shortest path to the neighbors of the current node.
+    """Searches for the best path to the neighbors of the current node.
 
     Args:
-        graph (dict): The graph to search for the shortest path
+        graph (dict): The graph to search for the path
         current_node (int): The id of the current node
         current_weight (float): The weight of the current node
         dijkstra_data (DijkstraData): The data structures used in Dijkstra's algorithm. Contains the weights, previous nodes, and priority queue
     """
     for neighbor, weight in graph[current_node]:
-        weight = current_weight + weight
+        new_weight = current_weight + weight
         
         # If the distance to the neighbor is shorter by taking this path
-        if weight < dijkstra_data.weights[neighbor]:
-            dijkstra_data.weights[neighbor] = weight
+        if new_weight < dijkstra_data.weights[neighbor]:
+            dijkstra_data.weights[neighbor] = new_weight
             dijkstra_data.previous_nodes[neighbor] = current_node
-            heapq.heappush(dijkstra_data.priority_queue, (weight, neighbor))
+            heapq.heappush(dijkstra_data.priority_queue, (new_weight, neighbor))
