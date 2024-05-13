@@ -58,7 +58,7 @@ def path_to_geojson(filtered_data:dict, path:list, weight:float):
 	
 
 def generate_rated_route(start: dict[float,float], end: dict[float,float], isBestRoute: bool, overpassData: dict):
-	"""Generates the shortest route between two points using the Dijkstra algorithm.
+	"""Generates the most optimal route between two points using the Dijkstra algorithm.
 
 	Args:
 		start (dict[float,float]): The coordinates of the start point
