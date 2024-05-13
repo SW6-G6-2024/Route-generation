@@ -4,13 +4,13 @@ from .haversine import haversine
 from .step_by_step import step_by_step_guide
 
 
-def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_distance:float):
+def path_to_geojson(filtered_data:dict, path:list, weight:float):
 	"""Converts the shortest path to a GeoJSON FeatureCollection.
 
 	Args:
 		filtered_data (dict): The filtered GeoJSON data from the Overpass API
-		shortest_path (list): The list of node IDs in the shortest path
-		shortest_distance (float): The distance of the shortest path
+		path (list): The list of node IDs in the shortest path
+		weight (float): The weight of the shortest path
 
 	Returns:
 		dict: A GeoJSON FeatureCollection representing the shortest path
@@ -30,9 +30,9 @@ def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_d
 	}
 
 	# Check if there is a shortest path to convert
-	if shortest_path:
+	if path:
 		# Extract coordinates from the node IDs in the shortest path
-		path_coordinates = [node_id_to_coords.get(node_id, ("Unknown", "Unknown")) for node_id in shortest_path]
+		path_coordinates = [node_id_to_coords.get(node_id, ("Unknown", "Unknown")) for node_id in path]
 
 		# Ensure coordinates are not 'Unknown' before attempting to switch to avoid errors
 		path_coordinates = [(lon, lat) for lat, lon in path_coordinates if (lat, lon) != ("Unknown", "Unknown")]
@@ -46,7 +46,7 @@ def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_d
 			},
 			"properties": {
 				"description": "Shortest Path",
-				"distance_km": shortest_distance,
+				"weight": weight,
 				"piste:type": "downhill"
 			}
 		}
@@ -58,7 +58,7 @@ def get_shortest_path_geojson(filtered_data:dict, shortest_path:list, shortest_d
 	
 
 def generate_rated_route(start: dict[float,float], end: dict[float,float], isBestRoute: bool, overpassData: dict):
-	"""Generates the shortest route between two points using the Dijkstra algorithm.
+	"""Generates the most optimal route between two points using the Dijkstra algorithm.
 
 	Args:
 		start (dict[float,float]): The coordinates of the start point
@@ -79,10 +79,10 @@ def generate_rated_route(start: dict[float,float], end: dict[float,float], isBes
 	graph = create_graph(filtered_data, isBestRoute)
 	graph = find_connections_for_stranded_nodes(graph, filtered_data, isBestRoute)
 
-	shortest_path, shortest_distance = dijkstra(graph, start_node, end_node)
+	shortest_path, weight = dijkstra(graph, start_node, end_node)
 
 	# Use the function and print the GeoJSON data
-	geojson_data = get_shortest_path_geojson(filtered_data, shortest_path, shortest_distance)
+	geojson_data = path_to_geojson(filtered_data, shortest_path, weight)
 
 	# Creates the step-by-step guide
 	step_guide = step_by_step_guide(shortest_path, filtered_data)

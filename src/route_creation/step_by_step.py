@@ -1,28 +1,28 @@
-def step_by_step_guide(shortest_path, overpassData):
+def step_by_step_guide(path, overpassData):
     """
-    Uses the shortest path's node IDs to find and refine way elements from the overpass data.
+    Uses the found path's node IDs to find and refine way elements from the overpass data.
     It then adds the way name/ref to a list, avoiding consecutive duplicates directly.
     It prioritizes staying on the same way at intersections unless the path explicitly changes.
 
     Args:
-        shortest_path (list): A list of node IDs representing the shortest path.
+        path (list): A list of node IDs representing the found path.
         overpassData (dict): A dictionary containing GeoJSON data from the Overpass API.
 
     Returns:
-        list: A refined list of way names or IDs corresponding to the shortest path,
+        list: A refined list of way names or IDs corresponding to the found path,
               with consecutive duplicates already avoided.
     """
     last_added_way_name = None
-    shortest_path_set = set(shortest_path)
+    path_set = set(path)
     relevant_ways = [
       element for element in overpassData['elements']
-      if element['type'] == 'way' and set(element['nodes']).intersection(shortest_path_set)
+      if element['type'] == 'way' and set(element['nodes']).intersection(path_set)
     ]
     way_to_nodes = build_way_to_nodes_mapping(relevant_ways)
     refined_sequence = []
     
-    # Process the shortest path to refine the sequence of way names or IDs.
-    refined_sequence, last_added_way_name = process_shortest_path(shortest_path, way_to_nodes, last_added_way_name)
+    # Process the path to refine the sequence of way names or IDs.
+    refined_sequence, last_added_way_name = process_path(path, way_to_nodes, last_added_way_name)
 
     return refined_sequence
 
@@ -32,7 +32,7 @@ def build_way_to_nodes_mapping(relevant_ways):
     Maps way names/refs to their nodes for the relevant ways.
     
     Args:
-        relevant_ways (list): A list of way elements relevant to the shortest path.
+        relevant_ways (list): A list of way elements relevant to the path.
     
     Returns:
         dict: A dictionary mapping way names/refs to their corresponding set of node IDs.
@@ -91,12 +91,12 @@ def update_refined_sequence(way, refined_sequence, last_added_way_name):
     return last_added_way_name
 
 
-def process_shortest_path(shortest_path, way_to_nodes, last_added_way_name):
+def process_path(path, way_to_nodes, last_added_way_name):
     """
-    Processes each node in the shortest path to refine the sequence of way names or refs.
+    Processes each node in the path to refine the sequence of way names or refs.
 
     Args:
-        shortest_path (list): A list of node IDs representing the shortest path.
+        path (list): A list of node IDs representing the path.
         way_to_nodes (dict): Mapping of way names/refs to their corresponding node IDs.
         last_added_way_name (str): The last way name/ref added to the sequence.
 
@@ -105,8 +105,8 @@ def process_shortest_path(shortest_path, way_to_nodes, last_added_way_name):
     """
     refined_sequence = []
 
-    for i, node_id in enumerate(shortest_path):
-      next_node_id = shortest_path[i + 1] if i + 1 < len(shortest_path) else None
+    for i, node_id in enumerate(path):
+      next_node_id = path[i + 1] if i + 1 < len(path) else None
       current_way = determine_current_way(node_id, next_node_id, way_to_nodes, last_added_way_name)
       if current_way:
         last_added_way_name = update_refined_sequence(current_way, refined_sequence, last_added_way_name)
