@@ -51,7 +51,7 @@ def test_generate_shortest_route():
                 },
                 'properties': {
                     'description': 'Shortest Path',
-                    'distance_km': 0.9113198207803078,
+                    'weight': 0.9113198207803078,
                     'piste:type': 'downhill'
                 }
             }
