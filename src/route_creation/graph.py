@@ -34,19 +34,18 @@ def create_vertex_connections(graph: dict, element: dict, isBestRoute: bool = Fa
         element (dict): An element from the filtered geojson data
     """
     piste_type = element.get('tags', {}).get('piste:type', None)
-
-    edges = len(element['nodes']) - 1
     
-    for i in range(edges):
+    for i in range(len(element['nodes']) - 1):
         node_a = element['nodes'][i]
         node_b = element['nodes'][i + 1]
         lat1, lon1 = element['geometry'][i]['lat'], element['geometry'][i]['lon']
         lat2, lon2 = element['geometry'][i + 1]['lat'], element['geometry'][i + 1]['lon']
         distance = haversine(lat1, lon1, lat2, lon2)
         rating = element.get('rating', 0)
-        
-        # Weight is based on rating or lift penalty if looking for best route, otherwise distance 
-        weight = (6 - rating) / edges if piste_type and isBestRoute else 20 / edges if isBestRoute else distance
+        weight = (6 - rating) if isBestRoute else distance
+
+        if piste_type and isBestRoute:
+            weight = 6 - rating
 
         if node_a not in graph:
             graph[node_a] = []

@@ -106,7 +106,7 @@ def find_nearest_node(coords: dict[float,float], elements: dict):
 			# Skip if the current node in the middle of a lift
 			if 'aerialway' in element.get('tags', {}) and i != 0:
 				continue
-			lat, lon = element['geometry'][i]['lat'], element['geometry'][i]['lon']
+			lat, lon = element['geometry'][0]['lat'], element['geometry'][0]['lon']
 			distance = haversine(coords.get('lat'), coords.get('lon'), lat, lon)
 			if distance < min_distance:
 				min_distance = distance
